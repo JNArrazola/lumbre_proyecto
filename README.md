@@ -1,163 +1,180 @@
-# Control Remoto de Apagado vía SSH
+# Documentación Técnica
 
-Este proyecto permite apagar equipos Linux y Windows de forma remota a través de SSH. Proporciona una interfaz web construida con Streamlit, que ofrece opciones tanto de apagado inmediato como programado.
+Esta documentación está pensada para desarrolladores que deseen colaborar o extender el proyecto de apagado remoto vía SSH. Aquí se describe la arquitectura del código, la organización en módulos y las directrices para mantenimiento y nuevas funcionalidades.
+
+---
 
 ## Tabla de Contenidos
-- [Control Remoto de Apagado vía SSH](#control-remoto-de-apagado-vía-ssh)
+- [Documentación Técnica](#documentación-técnica)
   - [Tabla de Contenidos](#tabla-de-contenidos)
-  - [Introducción](#introducción)
-  - [Requisitos Funcionales](#requisitos-funcionales)
-  - [Requisitos No Funcionales](#requisitos-no-funcionales)
-  - [Prerrequisitos](#prerrequisitos)
-  - [Instalación](#instalación)
-  - [Herramientas y Utilidades Adicionales](#herramientas-y-utilidades-adicionales)
-  - [Mantenimiento y Actualizaciones](#mantenimiento-y-actualizaciones)
-  - [Soporte](#soporte)
+  - [Descripción General del Proyecto](#descripción-general-del-proyecto)
+  - [Arquitectura de la Aplicación](#arquitectura-de-la-aplicación)
+  - [Entorno de Desarrollo](#entorno-de-desarrollo)
+  - [Estructura de Archivos](#estructura-de-archivos)
+  - [Módulos Principales](#módulos-principales)
+    - [1. `ssh_manager.py`](#1-ssh_managerpy)
+    - [2. `computer_manager.py`](#2-computer_managerpy)
+    - [3. `main.py`](#3-mainpy)
+    - [4. `pages/`](#4-pages)
+    - [5. `utils.py`](#5-utilspy)
+  - [Cómo Agregar Nuevas Páginas](#cómo-agregar-nuevas-páginas)
+  - [Configuración y Variables de Entorno](#configuración-y-variables-de-entorno)
+  - [Gestión de Dependencias](#gestión-de-dependencias)
+  - [Puesta en Marcha y Depuración](#puesta-en-marcha-y-depuración)
+  - [Pruebas y Validación](#pruebas-y-validación)
+  - [Lineamientos de Estilo](#lineamientos-de-estilo)
 
 ---
 
-## Introducción
-En entornos de TI, puede resultar esencial gestionar remotamente el apagado de servidores o estaciones de trabajo. Este proyecto está diseñado para simplificar esa tarea, ofreciendo una aplicación que se conecta vía SSH a los equipos y permite apagarlos, ya sea de inmediato o en una fecha y hora programadas.
+## Descripción General del Proyecto
+Este proyecto permite el control remoto de apagado de equipos (Linux y Windows) utilizando SSH. Está construido sobre la biblioteca **Streamlit**, lo que facilita la creación rápida de interfaces web interactivas. El proyecto implementa:
+- Apagado inmediato y programado.
+- Manejo de credenciales SSH (globales y por equipo).
+- Registro de la actividad de apagado.
+- Funciones de utilidad (ping, etc.) para verificación de conectividad.
+
+Los objetivos principales son:
+- Proveer una interfaz web unificada para la administración de apagados remotos.
+- Evitar al usuario final la complejidad de usar clientes SSH y recordar comandos manualmente.
+- Permitir la escalabilidad: manejo de múltiples equipos con credenciales diferentes.
 
 ---
 
-## Requisitos Funcionales
-1. **Autenticación con Contraseña Maestra**: El sistema debe solicitar al usuario una contraseña maestra para acceder a la interfaz.
-2. **Gestión de Equipos**: El usuario debe poder agregar, editar y eliminar equipos, especificando sus datos (IP, sistema operativo, descripción) y credenciales SSH.
-3. **Configuración SSH**: El sistema debe permitir configurar credenciales SSH globales que se apliquen a todos los equipos que no tengan credenciales específicas.
-4. **Apagado Inmediato**: Se debe habilitar el envío de un comando de apagado inmediato a un equipo seleccionado.
-5. **Apagado Programado**: Se debe habilitar la programación de un apagado en una fecha y hora específica, ya sea para un equipo o para varios.
-6. **Registro de Actividad (Logs)**: El sistema debe registrar cada intento de apagado, indicando fecha, hora, equipo, éxito o error.
-7. **Herramientas de Conectividad**: El usuario debe poder comprobar la accesibilidad de un equipo (por ejemplo, mediante ping) antes de proceder con el apagado.
+## Arquitectura de la Aplicación
+1. **Capa de Presentación (Streamlit):** Se compone de diferentes páginas (`dashboard.py`, `computers.py`, etc.) que forman la interfaz web.
+2. **Capa de Lógica y Servicios (ssh_manager, computer_manager):** Contiene funciones que encapsulan la lógica de conexión, ejecución de comandos y programaciones de apagado.
+3. **Capa de Datos (Session State de Streamlit):** Emplea el session state integrado de Streamlit para mantener los datos en memoria (lista de equipos, credenciales, logs).
 
 ---
 
-## Requisitos No Funcionales
-1. **Usabilidad**: La interfaz de usuario debe ser clara, intuitiva y amigable.
-2. **Rendimiento**: La aplicación debe responder de manera ágil a las interacciones del usuario.
-3. **Seguridad**: La contraseña maestra y las credenciales SSH deben manejarse de forma segura, sin exponer datos sensibles en texto claro.
-4. **Compatibilidad**: El sistema debe ejecutarse en Python 3.8 o superior y funcionar tanto en entornos Windows como Linux.
-5. **Mantenibilidad**: El código debe estar organizado en módulos, siguiendo buenas prácticas de desarrollo para facilitar su mantenimiento y evolución.
+## Entorno de Desarrollo
+Para contribuir o extender este proyecto, se recomienda:
+1. **Instalar Python 3.8 o superior**.
+2. **Crear un entorno virtual** con `venv` o similar.
+3. **Activar el entorno** y luego instalar las dependencias con `pip install -r requirements.txt`.
+
+Opcionalmente, se puede usar **Docker**. Sin embargo, no se incluye un `Dockerfile` por defecto en el repositorio. Si deseas contenedorizarlo, deberás crear tu propio archivo Docker e incluir la instalación de Python y las dependencias.
 
 ---
 
-## Prerrequisitos
-1. **Python 3.8 o superior**.
-2. **Servidor OpenSSH** activo en las máquinas remotas (Linux o Windows).
-3. **Usuario con privilegios sudo** en Linux, si se requiere un apagado sin solicitar contraseña.
-4. **Windows** con OpenSSH Server habilitado.
-5. **Librerías de Python** necesarias (por ejemplo, `streamlit`, `paramiko`, etc.).
-
----
-
-## Instalación
-
-1. **Clonar el Repositorio**
-2. **Crear y Activar un Entorno Virtual (Opcional pero Recomendado)**:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # En Windows: venv\Scripts\activate
-    ```
-3. **Instalar las Dependencias**:
-   ```bash
-    pip install -r requirements.txt
-    ```
-
----
-
-## Configuración
-
-### Configuración de SSH en los Equipos Remotos
-
-#### Linux
-1. Instalar y habilitar el servidor OpenSSH:
-    ```bash
-    sudo apt-get update && sudo apt-get install openssh-server
-    sudo systemctl enable ssh
-    sudo systemctl start ssh
-    ```
-2. (Opcional) Para omitir la contraseña al ejecutar `shutdown`, editar el archivo `sudoers` con `visudo`:
-    ```bash
-    tu_usuario ALL=(ALL) NOPASSWD: /sbin/shutdown
-    ```
-3. Verificar que el puerto 22 (o el que corresponda) esté abierto en el firewall.
-
-#### Windows
-1. Ir a **Panel de Control** > **Programas** > **Activar o desactivar las características de Windows**.
-2. Activar **OpenSSH Server**.
-3. Iniciar el servicio OpenSSH desde la sección de **Servicios** si no está activo.
-
-### Configuración de la Aplicación
-1. **Contraseña Maestra**: Define la contraseña maestra en los secretos de Streamlit (`.streamlit/secrets.toml`) o en una variable de entorno:
-    ```toml
-    [secret]
-    MASTER_PASSWORD="MI_CONTRASEÑA_MAESTRA"
-    ```
-2. **Credenciales SSH Globales**: Configura un usuario y contraseña globales dentro de la aplicación, en la sección de configuración SSH. Estas credenciales se aplican a todos los equipos que no tengan credenciales específicas asignadas.
-3. **Credenciales Específicas por Equipo**: En la sección "Gestionar Equipos" se pueden agregar o sobrescribir las credenciales para cada equipo en particular.
-4. **Puertos SSH**: Por defecto, el sistema intenta conectar al puerto 22. Si tus equipos usan otro puerto, deberás ajustarlo manualmente en el código que establece la conexión (generalmente en `paramiko.connect()`).
-
----
-
-## Uso
-
-1. **Ejecutar la Aplicación**:
-   ```bash
-    streamlit run src/main.py
-    ```
-2. **Iniciar Sesión**: Ingresa la contraseña maestra en el panel lateral.
-3. **Panel de Control**:
-   - **Apagado Inmediato**: Selecciona un equipo y haz clic en "Apagar Ahora".
-   - **Apagado Programado**: Indica una fecha y hora futura, elige uno o varios equipos y presiona "Programar Apagado".
-4. **Gestionar Equipos**: Añade, edita o elimina equipos. Cada uno puede tener credenciales SSH propias.
-5. **Configuración SSH**: Ajusta las credenciales SSH predeterminadas que se aplicarán a los equipos sin configuraciones individuales.
-6. **Registro de Actividad**: Revisa el historial de apagados realizados, con detalles sobre éxito o error.
-7. **Herramientas**: Encuentra utilidades como la verificación de conectividad (ping) y scripts de configuración para equipos Linux.
-
----
-
-## Estructura del Proyecto
+## Estructura de Archivos
 ```
-proyecto_lumbreras/
+turnoff-remote-ssh/
 │   requirements.txt          # Dependencias
-│   README.md                 # Documentación
-│   setup-remote.sh           # (Opcional) Script de configuración para Linux
+│   README.md                 # Documentación general (usuario)
+│   DEVELOPER_DOCS.md         # Documentación técnica (este archivo)
+│   setup-remote.sh           # Script opcional para configurar SSH en Linux remoto
 └── src/
     ├── main.py               # Punto de entrada de la aplicación Streamlit
-    ├── utils.py              # Funciones utilitarias generales
-    ├── ssh_manager.py        # Lógica de conexión y apagado vía SSH
-    ├── computer_manager.py   # Gestión de la lista de equipos
-    ├── pages/
-    │   ├── dashboard.py      # Panel de control principal (apagado inmediato y programado)
-    │   ├── computers.py      # Gestión de equipos
-    │   ├── ssh_config.py     # Configuración SSH global
-    │   ├── logs.py           # Registro de actividad
-    │   └── tools.py          # Herramientas adicionales (ping, etc.)
+    ├── utils.py              # Funciones utilitarias
+    ├── ssh_manager.py        # Lógica de conexiones SSH y apagado
+    ├── computer_manager.py   # Manejo de la lista de equipos (CRUD en session state)
+    └── pages/
+        ├── dashboard.py      # Panel de control principal
+        ├── computers.py      # Gestión de equipos
+        ├── ssh_config.py     # Configuración SSH
+        ├── logs.py           # Registro de actividad
+        └── tools.py          # Herramientas adicionales (ping, etc.)
 ```
 
----
-
-## Herramientas y Utilidades Adicionales
-- **Prueba de Conexión (Ping)**: Permite verificar si un host remoto está accesible.
-- **Script de Configuración para Linux** (`setup-remote.sh`): Automatiza la instalación de OpenSSH y la configuración de privilegios sudo.
-
----
-
-## Mantenimiento y Actualizaciones
-- **Actualizar Dependencias**:
-    ```bash
-    pip install --upgrade -r requirements.txt
-    ```
-- **Obtener Últimos Cambios**:
-    ```bash
-    git pull origin main
-    ```
-- **Buenas Prácticas**:
-  - Mantén tu código modular y documentado.
-  - Revisa periódicamente los registros de actividad (Logs) para detectar problemas de conexión.
-  - Asegura que las contraseñas y credenciales se guarden de forma segura.
+- **`main.py`**: Arranca la aplicación Streamlit, maneja la autenticación y la navegación.
+- **`pages/`**: Cada archivo `.py` dentro de esta carpeta corresponde a una pantalla o sección de la aplicación.
+- **`ssh_manager.py`**: Funciones para conectarse vía SSH (usando Paramiko) y ejecutar el apagado inmediato o programado.
+- **`computer_manager.py`**: Lógica de negocio para CRUD de equipos en memoria.
+- **`utils.py`**: Funciones auxiliares (por ejemplo, formatear fechas, reiniciar la app, etc.).
 
 ---
 
-## Soporte
-Si encuentras algún problema, abre un incidente (issue) en el repositorio de GitHub o contacta al responsable del proyecto. Proporciona la mayor cantidad de detalles posible, incluyendo el registro de errores y mensajes de la aplicación.
+## Módulos Principales
+
+### 1. `ssh_manager.py`
+- **Objetivo**: Centralizar la conexión SSH y la ejecución de comandos remotos.
+- **Funciones Clave**:
+  - `schedule_shutdown(ip, os_type, username, password, sudo_password, shutdown_time, immediate)`: Programa o ejecuta de inmediato el apagado según los parámetros.
+  - `handle_immediate_shutdown(ip, os_type, computer)`: Facilita el apagado inmediato usando las credenciales definidas.
+- **Tecnología**: Usa `paramiko` para el manejo de la conexión.
+
+### 2. `computer_manager.py`
+- **Objetivo**: Gestionar la lista de equipos en el estado de sesión de Streamlit.
+- **Funciones Clave**:
+  - `get_computers(session_state)`: Devuelve la lista de equipos.
+  - `update_computers(session_state, new_list)`: Actualiza la lista de equipos.
+- **Notas**: El almacenamiento es transitorio (en memoria). Para persistir datos, habría que integrar una base de datos.
+
+### 3. `main.py`
+- **Objetivo**: Punto de entrada de la aplicación Streamlit.
+- **Responsabilidades**:
+  - Inicializa el `session_state`.
+  - Carga o verifica la contraseña maestra (definida en `st.secrets`).
+  - Ofrece la barra lateral con la navegación.
+  - Redirige a cada página (en `pages/`) según la selección del usuario.
+
+### 4. `pages/`
+- **dashboard.py**: Pantalla principal con apagado inmediato y programado.
+- **computers.py**: Gestión de la lista de equipos, edición de credenciales individuales.
+- **ssh_config.py**: Configuración SSH global (usuario/password predeterminados).
+- **logs.py**: Muestra la actividad registrada de apagados (éxitos y errores).
+- **tools.py**: Herramientas adicionales (ping, descarga de script `setup-remote.sh`, etc.).
+
+### 5. `utils.py`
+- **Objetivo**: Contener funciones de utilidad (por ejemplo, formatear hora, recargar la app, etc.).
+- **Ejemplo**:
+  - `format_time(dt)`: Retorna un string con el tiempo formateado.
+  - `rerun()`: Llama a `st.experimental_rerun()` (o un mecanismo alternativo si la versión de Streamlit no lo soporta).
+
+---
+
+## Cómo Agregar Nuevas Páginas
+1. Crea un archivo `.py` en la carpeta `pages/` con el nombre de la nueva funcionalidad.
+2. Define una función principal `app()` que use las funciones de Streamlit para construir la interfaz.
+3. En `main.py`, agrega la lógica de navegación para que el usuario pueda acceder a la nueva página (por ejemplo, un nuevo botón en la barra lateral).
+4. Opcionalmente, si la página requiere lógica nueva, crea un módulo adicional en `src/` para encapsular dicha lógica.
+
+---
+
+## Configuración y Variables de Entorno
+- **Contraseña Maestra**: Se espera en `st.secrets["MASTER_PASSWORD"]`. Alternativamente, puedes definirla en una variable de entorno y leerla desde Python.
+- **Otros Ajustes**:
+  - El puerto SSH por defecto se define en `ssh_manager.py`. Si es distinto de 22, modifica la llamada a `client.connect()`.
+  - Para habilitar logs más detallados, puedes usar la librería estándar `logging` de Python.
+
+---
+
+## Gestión de Dependencias
+- Las dependencias se enumeran en `requirements.txt`.
+- Para instalarlas:
+  ```bash
+  pip install -r requirements.txt
+  ```
+- Al agregar nuevas bibliotecas, actualiza `requirements.txt`:
+  ```bash
+  pip freeze > requirements.txt
+  ```
+
+---
+
+## Puesta en Marcha y Depuración
+1. **Arranque**:
+   ```bash
+   streamlit run src/main.py
+   ```
+2. **Autenticación**: Ingresa la contraseña maestra en la barra lateral.
+3. **Visualización de Errores**: Streamlit muestra los errores directamente en la interfaz y en la consola. Si un comando SSH falla, se registrará en la sección de logs o en la salida.
+4. **Log de Actividad**: Cada intento de apagado genera una entrada en `st.session_state.shutdown_results`. Puedes revisar la página de logs.
+
+---
+
+## Pruebas y Validación
+Actualmente, el proyecto no contiene un conjunto formal de pruebas unitarias. Para validaciones básicas:
+1. **SSH en Equipos de Prueba**: Configura un contenedor Linux o una VM Windows con OpenSSH para comprobar las rutas de apagado.
+2. **Validación Manual**: Inicia la app, añade equipos de ejemplo y ejecuta apagados inmediatos y programados.
+3. **Integración**: Si deseas pruebas más extensas, se recomienda usar `pytest` o un framework de pruebas similar.
+
+---
+
+## Lineamientos de Estilo
+- **PEP 8**: Se sugiere seguir la convención de estilo PEP 8 en Python.
+- **Nombres de Funciones y Variables**: Usar nombres descriptivos en inglés o español, pero de forma consistente.
+- **Modularidad**: Separar la lógica de negocio (por ejemplo, `ssh_manager`) de la capa de presentación (Streamlit).
+
+---

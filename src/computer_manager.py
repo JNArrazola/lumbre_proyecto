@@ -6,19 +6,11 @@ def get_computers(session_state):
             {
                 "IP": "192.168.1.100",
                 "OS": "Linux",
-                "Description": "Server 1",
-                "ssh_user": "admin",
-                "ssh_password": "",
-                "sudo_pass": ""
+                "Description": "Prueba",
+                "ssh_user": "test",
+                "ssh_password": "test",
+                "sudo_pass": "test"
             },
-            {
-                "IP": "192.168.1.101",
-                "OS": "Linux",
-                "Description": "Server 2",
-                "ssh_user": "admin",
-                "ssh_password": "",
-                "sudo_pass": ""
-            }
         ]
     return session_state.computers
 

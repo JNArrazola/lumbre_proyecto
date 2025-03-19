@@ -13,15 +13,7 @@ def init_session_state(st):
             {
                 "IP": "192.168.1.100", 
                 "OS": "Linux", 
-                "Description": "Server 1",
-                "ssh_user": "admin",
-                "ssh_password": "",
-                "sudo_pass": ""
-            },
-            {
-                "IP": "192.168.1.101", 
-                "OS": "Linux", 
-                "Description": "Server 2",
+                "Description": "Prueba",
                 "ssh_user": "admin",
                 "ssh_password": "",
                 "sudo_pass": ""
